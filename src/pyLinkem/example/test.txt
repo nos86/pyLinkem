@@ -1,0 +1,144 @@
+<html>
+<head>
+<meta charset="utf-8"><meta http-equiv="Content-Type" content="text/html";>
+<script Language="Javascript" type="text/Javascript">
+function setCookie(c_name, value, cookie_secure) {
+	var secure = cookie_secure == "1" ? ";Secure=true" : "";
+	if(c_name)
+		document.cookie = c_name+ "=" + trim(value) + ";path=/"+secure;
+	return;
+}
+
+function getCookie(name) {
+	var cookie= new Array(), temp;
+	var value = "";
+
+	if(!name)
+		return value;
+
+	if(document.cookie){
+		cookie = document.cookie.split(";");
+		for(var i=0; i<cookie.length; i++) {
+			temp = cookie[i].split("=");
+			if(trim(temp[0]) == name && temp[1]) {
+				value = trim(temp[1]);
+				break;
+			}
+		}
+	}
+	return value;
+}
+
+function DelAllCookie() {
+	var cookie, i;
+	if(document.cookie){
+		cookie = document.cookie.split(";");
+		for(i=0; i<cookie.length; i++) {
+			temp = cookie[i].split("=");
+			DelCookie(temp[0]);
+		}
+	}
+	return;
+}
+
+function DelCookie(name) {
+	var expire;
+
+	if(name) {
+		expire = new Date();
+		expire.setTime(expire.getTime() - 1);
+		document.cookie = name + "=;expires=" + expire.toGMTString() + ";path=/";
+	}
+	return;
+}
+
+function trim(str) {
+	return str.replace(/^\s+|\s+$/g, "");
+}
+
+function CheckPage(page) {
+	var mainweb = new Array("index.asp", "login.asp");
+	var i;
+
+	for (i=0; i<mainweb.length; i++)
+		if(page == mainweb[i]) return 0;
+
+	return 1;
+}
+
+function NewFormAction(page, action) {
+	var newAction;
+	var timestamp = (new Date()).getTime();
+	var result = CheckPage(page);
+
+	if(result == 0 || result == 1)
+		newAction = "/cgi-bin/sysconf.cgi?page=" + page;
+	else
+		return "";
+
+	if(action)
+		newAction = newAction + "&action=" + action;
+
+	newAction += "&timestamp=" + timestamp;
+
+	return newAction;
+}
+
+function NewLinkHref(page) {
+	var href;
+	var timestamp = (new Date()).getTime();
+
+	switch(CheckPage(page)){
+		case 0:
+			href = "/" + page + "?timestamp=" + timestamp; break;
+		default:
+			href = "/cgi-bin/sysconf.cgi?page=" + page + "&action=request" + "&timestamp=" + timestamp; break;
+	}
+
+	if(page == "login.asp" || page == "index.asp")
+		location.href = href;
+	else {
+		window.open(href, "_self");
+	}
+}
+
+function NewSiteHref(site, page) {
+	var href = site;
+	var timestamp = (new Date()).getTime();
+
+	switch(CheckPage(page)){
+		case 0: 
+			href += "/" + page + "?timestamp=" + timestamp; 
+			break;
+		default: 
+			href += "/cgi-bin/sysconf.cgi?page=" + page + "&action=request" + "&timestamp=" + timestamp; 
+			break;
+	}
+	
+	if(page == "login.asp")
+		location.href = href;
+	else
+		window.open(href, "_self");
+}
+
+function getParameterByName(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+
+function redirect_ip(site, page) {
+	setTimeout("NewSiteHref('"+site+"', 'login.asp')",5000);
+}
+NewLinkHref('login.asp');
+</script>
+</head>
+<body>
+</body>
+</html>
+
+
