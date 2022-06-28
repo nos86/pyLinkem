@@ -17,6 +17,8 @@ class LinkemRouter:
     bootrom_version = ""
     bootrom_created_on = ""
     LTE_supported_bands = []
+    wan_ip = ""
+    lan_ip = ""
     
         
     def __init__(self, host, username, password):
@@ -26,14 +28,23 @@ class LinkemRouter:
         self.session = requests.Session()
         self.login()
         self.getDeviceInfo()
+        self.getIpInfo()
         
         
-    def debug(self, page, action, data={}): #FIXME: remove it
-        return self.__call_api(page, action, data)
+    def debug(self, page, action, data={}, parse_response=True): #FIXME: remove it
+        return self.__call_api(page, action, data, parse_response)
         
-    
+    def getIpInfo(self):
+        data = self.__call_api(action="init")
+        self.wan_ip = data['wan_ip']
+        self.lan_ip = data['now_info']['lan_ip']
+
+    def getCurrentSpeed(self):
+        data = self.__call_api(action="mobile_status_Info",)
+        return {'up': data['Up_Down_Link']['up_UL_Rate'], 'down': data['Up_Down_Link']['dl_DL_Rate']}
+
     def getDeviceInfo(self):
-        html = self.__call_api(page="control_panel_about.asp", action="request")
+        html = self.__call_api(page="control_panel_about.asp", action="request", parse_response=False)
         info = list(filter( lambda x: x.startswith('var multipleParameters'), html.content.decode().split('\n')))[0].split('"')[1]
         (_, self.device_name, self.model_id, _, self.serial_id, self.service_provider,
             self.firmware_version, self.IAD_firmware_version, self.bootrom_version,
@@ -43,9 +54,20 @@ class LinkemRouter:
             self.LTE_supported_bands = ['Not available']
         else:
             self.LTE_supported_bands = LTE_supported_bands.split(',')
+
+    def getMobileStatus(self):
+        data = self.__call_api(action="mobile_Signal_Strength")
+        return {
+            'signal': data['signal'],
+            'link strength': data['val_rsrp'],
+            'link quality': data['val_cinr']
+        }
+
+    def isNewFirmwareAvailable(self):
+        return self.__call_api(action='chkFwUpgrade', parse_response=False).content != b"Nothing"
         
     def getDeviceStatus(self):
-        data = self.__call_api(page="ajax.asp", action="status_system", parse_response=True)
+        data = self.__call_api(action="status_system")
         ans = {
             "cpu": float(data['cpu_current_usage']),
             "mem": float(data['mem_current_usage']),
@@ -58,9 +80,9 @@ class LinkemRouter:
     
     def login(self):
         data = {"user_name":self.username, "user_passwd":self.password}
-        return self.__call_api(page="login.asp",  action="login", data = data)
+        return self.__call_api(page="login.asp",  action="login", data = data, parse_response=False)
     
-    def __call_api(self, page, action, data={}, parse_response=False):
+    def __call_api(self, action, data={}, page='ajax.asp', parse_response=True):
         baseurl = f"https://{self.host}/cgi-bin/sysconf.cgi"
         query= {'page': page, 'action': action}
         if data:
